@@ -1,0 +1,80 @@
+import subprocess
+from argparse import Namespace
+
+import os
+from hebi.utils.paths import c_cache_dir, c_config_dir
+
+
+class Command:
+    args: Namespace
+
+    def __init__(self, args: Namespace) -> None:
+        self.args = args
+
+    def run(self) -> None:
+        if self.args.show:
+            # Print the ipc
+            self.print_ipc()
+        elif self.args.log:
+            # Print the log
+            self.print_log()
+        elif self.args.kill:
+            # Kill the shell
+            self.shell("kill")
+        elif getattr(self.args, "toggle", False):
+            # Toggle the shell
+            try:
+                self.shell("kill")
+            except SystemExit:
+                self.start_shell()
+        elif self.args.message:
+            # Send a message
+            self.message(*self.args.message)
+        else:
+            # Start the shell
+            self.start_shell()
+
+    def start_shell(self) -> None:
+        args = ["qs", "-p", str(c_config_dir), "-n"]
+        if self.args.log_rules:
+            args.extend(["--log-rules", self.args.log_rules])
+        env = os.environ.copy()
+        env["QML2_IMPORT_PATH"] = str(c_config_dir / "plugin" / "build" / "qml")
+        if self.args.daemon:
+            args.append("-d")
+            subprocess.run(args, env=env)
+        else:
+            shell = subprocess.Popen(args, stdout=subprocess.PIPE, universal_newlines=True, env=env)
+
+            # Ensure stdout is not None for the type checker
+            if shell.stdout:
+                for line in shell.stdout:
+                    if self.filter_log(line):
+                        print(line, end="")
+
+    def shell(self, *args: str) -> str:
+        env = os.environ.copy()
+        env["QML2_IMPORT_PATH"] = str(c_config_dir / "plugin" / "build" / "qml")
+        try:
+            return subprocess.check_output(["qs", "-p", str(c_config_dir), *args], stderr=subprocess.DEVNULL, text=True, env=env)
+        except subprocess.CalledProcessError as e:
+            raise SystemExit(e.returncode)
+
+    def filter_log(self, line: str) -> bool:
+        return f"Cannot open: file://{c_cache_dir}/imagecache/" not in line
+
+    def print_ipc(self) -> None:
+        print(self.shell("ipc", "show"), end="")
+
+    def print_log(self) -> None:
+        if self.args.log_rules:
+            log = self.shell("log", "-r", self.args.log_rules)
+        else:
+            log = self.shell("log")
+        # FIXME: remove when logging rules are added/warning is removed
+        for line in log.splitlines():
+            if self.filter_log(line):
+                print(line)
+
+    def message(self, *args: list[str]) -> None:
+        print(self.shell("ipc", "call", *args), end="")
