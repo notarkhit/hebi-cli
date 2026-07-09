@@ -1,27 +1,9 @@
-import os
-import shutil
 import subprocess
-import textwrap
+import sys
 from argparse import Namespace
 from pathlib import Path
 
-from hebi.utils.dots.deployer import Deployer
-from hebi.utils.dots.manifest import ComponentError, Manifest, ManifestError, expand, expand_dests
-from hebi.utils.dots.packages import DEFAULT_AUR_HELPER, PackageInstaller
-from hebi.utils.dots.source import DotsSource, SourceError
-from hebi.utils.dots.state import DotsState
-from hebi.utils.io import PROMPT_COLOUR, confirm, disable_input, fatal, format_msg, info, log, pause, prompt, warn
-from hebi.utils.paths import (
-    config_backup_dir,
-    config_dir,
-    dots_dir,
-)
-
-
-def _parse_list_arg(value: str | None) -> list[str] | None:
-    if value is None:
-        return None
-    return [item.strip() for item in value.split(",") if item.strip()]
+from hebi.utils.io import info, fatal, log
 
 
 class Command:
@@ -31,213 +13,78 @@ class Command:
         self.args = args
 
     def run(self) -> None:
-        if self.args.noconfirm:
-            disable_input()
+        info("Installing hebi shell dependencies...")
+        self.install_dependencies()
+        
+        target_dir = Path.home() / ".config" / "hebi"
+        info(f"Setting up shell repository at {target_dir}...")
+        self.setup_repo(target_dir)
+        
+        info("Building plugins...")
+        self.build_plugins(target_dir)
+        
+        info("Starting the shell in daemon mode...")
+        self.start_shell()
+        
+        info("Installation complete! ✨ 🌟 ✨")
 
-        self.print_greeting()
-        self.create_backup()
+    def install_dependencies(self) -> None:
+        pacman_deps = [
+            "cmake", "make", "gcc", "qt6-base", "qt6-declarative",
+            "qt6-shadertools", "qt6-svg", "libqalculate", "pipewire", "aubio"
+        ]
+        yay_deps = ["libcava"]
 
-        source, tip, manifest = self.fetch_manifest()
-        self.deploy_configs(source, manifest)
-        helper, packages, local_packages = self.install_packages(source, manifest)
-        self.run_hooks(manifest)
-
-        DotsState(
-            aur_helper=helper,
-            applied_rev=tip,
-            enabled_components=manifest.enabled_components,
-            packages=packages,
-            local_packages=local_packages,
-        ).save()
-
-        self.print_done()
-
-    def print_greeting(self) -> None:
-        print(
-            "\033[38;2;150;241;241m"  # Hebi colour
-            + textwrap.dedent(
-                r"""
-                ░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░▒▓███████▓▒░░▒▓█▓▒░ 
-                ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░ 
-                ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░ 
-                ░▒▓████████▓▒░▒▓██████▓▒░ ░▒▓███████▓▒░░▒▓█▓▒░ 
-                ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░ 
-                ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░ 
-                ░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░▒▓███████▓▒░░▒▓█▓▒░ 
-                """
-            )
-            + "\033[0m"
-        )
-        info("Welcome to the Hebi dotfiles installer!")
-        info("Here's a quick overview on what this command is going to do:")
-        info("  - Install dependencies")
-        info("  - Install config files")
-        info("The installer does NOT set up hardware/system level configs (e.g. drivers). Please do this yourself.")
-        pause()
-        print()
-
-    def create_backup(self) -> None:
-        if config_dir.exists():
-            if not confirm("Back up the config directory?", default=True):
-                return
-
-            log(f"Creating a backup of {config_dir}...")
-            if config_backup_dir.exists():
-                if not confirm("A backup already exists, overwrite?", default=False):
-                    info("Not creating backup.")
-                    return
-
-                log("Deleting old backup...")
-                shutil.rmtree(config_backup_dir)
-
-            shutil.copytree(config_dir, config_backup_dir, symlinks=True)
-            info(f"Created backup at {config_backup_dir}")
-
-    def fetch_manifest(self) -> tuple[DotsSource, str, Manifest]:
-        print()
-        log("Fetching dots repo...")
-        source = DotsSource()
+        log("Installing pacman dependencies...")
         try:
-            source.ensure()
-            tip = source.checkout_tip()
-        except SourceError as e:
-            fatal(e)
+            subprocess.run(["sudo", "pacman", "-S", "--needed", "--noconfirm", *pacman_deps], check=True)
+        except subprocess.CalledProcessError as e:
+            fatal(f"Failed to install pacman dependencies: {e}")
 
-        enable = _parse_list_arg(self.args.enable_components)
-        disable = _parse_list_arg(self.args.disable_components)
+        log("Installing yay dependencies...")
         try:
-            manifest = source.manifest_at(tip)
-            manifest.resolve_components(enable=enable, disable=disable)
+            subprocess.run(["yay", "-S", "--needed", "--noconfirm", *yay_deps], check=True)
+        except subprocess.CalledProcessError as e:
+            fatal(f"Failed to install yay dependencies: {e}")
 
-            if enable is None and disable is None:
-                self.prompt_optional_components(manifest)
-        except (SourceError, ManifestError, ComponentError) as e:
-            fatal(e)
-
-        names = ", ".join(manifest.enabled_components) or "none"
-        info(f"Enabled components: {names}")
-
-        return source, tip, manifest
-
-    def prompt_optional_components(self, manifest: Manifest) -> None:
-        comp_arr = manifest.disabled_components
-        if not comp_arr:
-            return
-
-        print(format_msg(PROMPT_COLOUR, True, "Components to enable?"))
-        max_idx_w = len(str(len(comp_arr)))
-        for i, comp in enumerate(comp_arr):
-            print(format_msg(PROMPT_COLOUR, True, f"  {i + 1:<{max_idx_w}}\t{comp}"))
-        print(format_msg(PROMPT_COLOUR, True, "[A]ll or (1 2 3, 1-3, ^4)"))
-
-        def _valid_v(v: str) -> int:
+    def setup_repo(self, target_dir: Path) -> None:
+        if target_dir.exists():
+            log(f"{target_dir} already exists, pulling latest changes...")
             try:
-                i_v = int(v, base=10) - 1  # -1 to translate to 0 index
-            except ValueError:
-                raise ValueError(f'Given value "{v}" must be an integer.')
-            if i_v < 0 or i_v >= len(comp_arr):
-                raise ValueError(f'Given value "{v}" must be between 1 and {len(comp_arr)} inclusive.')
-            return i_v
-
-        def _parse(ans: str) -> list[str] | None:
-            if ans in ("a", "all"):
-                return list(manifest.components)
-            if not ans:
-                return None
-
-            enabled: list[str] = []
-            for tok in ans.split():
-                fr, sep, to = tok.partition("-")
-                if sep:
-                    fr = _valid_v(fr)
-                    to = _valid_v(to)
-                    if fr > to:
-                        raise ValueError(f'Given range "{tok}" must be lo-hi.')
-                    enabled += comp_arr[fr : to + 1]
-                elif tok.startswith("^"):
-                    t = _valid_v(tok[1:])
-                    enabled += comp_arr[:t] + comp_arr[t + 1 :]
-                else:
-                    t = _valid_v(tok)
-                    enabled.append(comp_arr[t])
-            return list(set(enabled))
-
-        while True:
-            ans = prompt("", end="").lower().strip()
+                subprocess.run(["git", "pull"], cwd=target_dir, check=True)
+            except subprocess.CalledProcessError as e:
+                fatal(f"Failed to pull latest changes: {e}")
+        else:
+            log(f"Cloning repository to {target_dir}...")
             try:
-                enabled = _parse(ans)
-            except ValueError as e:
-                warn(f"invalid input. {e} Please try again.")
-                continue
+                subprocess.run(
+                    ["git", "clone", "https://github.com/notarkhit/hebi.git", str(target_dir)],
+                    check=True
+                )
+            except subprocess.CalledProcessError as e:
+                fatal(f"Failed to clone repository: {e}")
 
-            if enabled is not None:
-                manifest.resolve_components(enable=enabled)
-            return
+    def build_plugins(self, target_dir: Path) -> None:
+        plugin_dir = target_dir / "plugin"
+        if not plugin_dir.exists():
+            fatal(f"Plugin directory not found at {plugin_dir}")
 
-    def deploy_configs(self, source: DotsSource, manifest: Manifest) -> None:
-        print()
-        log("Installing configs...")
-        deployer = Deployer()
-        for entry in manifest.enabled_entries():
-            src = source.working_path(expand(entry.src))
-            if not src.exists():
-                warn(f"missing in source, skipping: {entry.src}")
-                continue
+        log("Configuring CMake...")
+        try:
+            subprocess.run(["cmake", "-B", "build", "-S", ".", '-DVERSION=\\"1.0\\"'], cwd=plugin_dir, check=True)
+        except subprocess.CalledProcessError as e:
+            fatal(f"Failed to configure CMake: {e}")
 
-            dests = expand_dests(entry.dest)
-            if not dests:
-                warn(f"dest glob matched nothing, skipping: {entry.dest}")
-                continue
+        log("Building with CMake...")
+        try:
+            # We use subprocess to find nproc
+            nproc = subprocess.check_output(["nproc"], text=True).strip()
+            subprocess.run(["cmake", "--build", "build", f"-j{nproc}"], cwd=plugin_dir, check=True)
+        except subprocess.CalledProcessError as e:
+            fatal(f"Failed to build plugins: {e}")
 
-            for dest in dests:
-                deployer.place(src, Path(dest))
-                info(f"{entry.src} -> {dest}")
-
-    def install_packages(self, source: DotsSource, manifest: Manifest) -> tuple[str, list[str], dict[str, list[str]]]:
-        installer = PackageInstaller.get(self.args.aur_helper, self.args.noconfirm)
-
-        packages = manifest.enabled_packages()
-        if packages:
-            print()
-            log("Installing packages...")
-            installer.install(packages)
-
-        local_packages = {}
-        local_dirs = manifest.enabled_local_packages()
-        if local_dirs:
-            print()
-            log("Building local packages...")
-            for path in local_dirs:
-                directory = source.working_path(path)
-                if not directory.is_dir():
-                    warn(f"missing in repo, skipping: {path}")
-                    continue
-
-                log(f"Building {path}...")
-                local_packages[path] = installer.build_install(directory)
-
-        return getattr(installer, "helper", DEFAULT_AUR_HELPER), packages, local_packages
-
-    def run_hooks(self, manifest: Manifest) -> None:
-        hooks = manifest.enabled_hooks("post_install")
-        if not hooks:
-            return
-
-        print()
-        log("Running post-install hooks...")
-        env = {**os.environ, "HEBI_DOTS": str(dots_dir)}
-        for hook in hooks:
-            info(f"Running hook: {hook}")
-            result = subprocess.run(hook, shell=True, env=env)
-            if result.returncode != 0:
-                warn(f"hook exited with {result.returncode}")
-
-    def print_done(self) -> None:
-        print()
-        info("All done! Hebi has been installed.")
-        info("A few things to finish up:")
-        info("  - A reboot is recommended for all changes take effect")
-        info("  - Edit `~/.config/hebi/hypr-vars.conf` to set default apps, keybinds and much more")
-        info("  - Edit `~/.config/hebi/hypr-user.conf` to set your monitor layout and other Hyprland configs")
-        info("  - Run `hebi update` later to pull in the latest changes")
-        info("Enjoy! For support (or to just hang out), join our Discord server: https://discord.gg/BGDCFCmMBk")
+    def start_shell(self) -> None:
+        try:
+            subprocess.run(["hebi", "shell", "-t", "-d"], check=True)
+        except subprocess.CalledProcessError as e:
+            fatal(f"Failed to start the shell: {e}")
