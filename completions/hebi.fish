@@ -20,7 +20,7 @@ complete -c hebi -n $not_seen -a 'clipboard' -d 'Open clipboard history'
 complete -c hebi -n $not_seen -a 'emoji' -d 'Emoji/glyph utilities'
 complete -c hebi -n $not_seen -a 'wallpaper' -d 'Manage the wallpaper'
 complete -c hebi -n $not_seen -a 'resizer' -d 'Window resizer'
-complete -c hebi -n $not_seen -a 'install' -d 'Install the hebi dotfiles'
+complete -c hebi -n $not_seen -a 'install' -d 'Install the Hebi dotfiles'
 
 # Shell
 set -l commands mpris drawers wallpaper notifs

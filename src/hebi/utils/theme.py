@@ -420,7 +420,8 @@ def apply_colours(colours: dict[str, str], mode: str) -> None:
             cfg = get_config().get("theme", {})
 
             def check(key: str) -> bool:
-                return cfg[key] if key in cfg else True
+                # Disabled application theming as per user request
+                return False
 
             if check("enableTerm"):
                 apply_terms(gen_sequences(colours))
@@ -453,7 +454,7 @@ def apply_colours(colours: dict[str, str], mode: str) -> None:
                 apply_zed(colours, mode)
             if check("enableCava"):
                 apply_cava(colours)
-            apply_user_templates(colours, mode)
+            # apply_user_templates(colours, mode)
 
             if post_hook := cfg.get("postHook"):
                 scheme = get_scheme()
