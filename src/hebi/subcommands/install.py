@@ -18,15 +18,18 @@ class Command:
         
         target_dir = Path.home() / ".config" / "hebi"
         info(f"Setting up shell repository at {target_dir}...")
-        self.setup_repo(target_dir)
+        needs_build = self.setup_repo(target_dir)
         
-        info("Building plugins...")
-        self.build_plugins(target_dir)
-        
-        info("Starting the shell in daemon mode...")
-        self.start_shell()
-        
-        info("Installation complete! ✨ 🌟 ✨")
+        if needs_build:
+            info("Building plugins...")
+            self.build_plugins(target_dir)
+            
+            info("Starting the shell in daemon mode...")
+            self.start_shell()
+            
+            info("Installation complete! ✨ 🌟 ✨")
+        else:
+            info("Hebi shell is already up to date! Nothing to do.")
 
     def install_dependencies(self) -> None:
         pacman_deps = [
@@ -47,13 +50,26 @@ class Command:
         except subprocess.CalledProcessError as e:
             fatal(f"Failed to install yay dependencies: {e}")
 
-    def setup_repo(self, target_dir: Path) -> None:
+    def setup_repo(self, target_dir: Path) -> bool:
         if target_dir.exists():
-            log(f"{target_dir} already exists, pulling latest changes...")
+            log(f"{target_dir} already exists, checking for updates...")
             try:
-                subprocess.run(["git", "pull"], cwd=target_dir, check=True)
+                subprocess.run(["git", "fetch"], cwd=target_dir, check=True)
+                local = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=target_dir, text=True).strip()
+                remote = subprocess.check_output(["git", "rev-parse", "@{u}"], cwd=target_dir, text=True).strip()
+                
+                if local != remote:
+                    log("Pulling latest changes...")
+                    subprocess.run(["git", "pull"], cwd=target_dir, check=True)
+                    return True
+                else:
+                    log("Repository is up to date.")
+                    # Only build if the build directory doesn't exist yet
+                    if not (target_dir / "plugin" / "build").exists():
+                        return True
+                    return False
             except subprocess.CalledProcessError as e:
-                fatal(f"Failed to pull latest changes: {e}")
+                fatal(f"Failed to check or pull latest changes: {e}")
         else:
             log(f"Cloning repository to {target_dir}...")
             try:
@@ -61,6 +77,7 @@ class Command:
                     ["git", "clone", "https://github.com/notarkhit/hebi.git", str(target_dir)],
                     check=True
                 )
+                return True
             except subprocess.CalledProcessError as e:
                 fatal(f"Failed to clone repository: {e}")
 
