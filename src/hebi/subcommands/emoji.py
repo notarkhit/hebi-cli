@@ -15,11 +15,8 @@ class Command:
     def run(self) -> None:
         data_file = "nerdfonts.txt" if getattr(self.args, "nerdfont", False) else "emojis.txt"
         if self.args.picker:
-            emojis = (cli_data_dir / "emojis.txt").read_text()
-            chosen = subprocess.check_output(
-                ["fuzzel", "--dmenu", "--placeholder=Type to search emojis"], input=emojis, text=True
-            )
-            subprocess.run(["wl-copy"], input=chosen.split()[0], text=True)
+            mode = '"::"' if getattr(self.args, "nerdfont", False) else '":"'
+            subprocess.run(["hebi", "shell", "launcher", "openMode", mode])
         elif self.args.fetch:
             self.fetch_emojis()
         else:
