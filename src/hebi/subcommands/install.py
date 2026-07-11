@@ -13,9 +13,6 @@ class Command:
         self.args = args
 
     def run(self) -> None:
-        info("Installing hebi shell dependencies...")
-        self.install_dependencies()
-        
         target_dir = Path.home() / ".config" / "hebi"
         info(f"Setting up shell repository at {target_dir}...")
         needs_build = self.setup_repo(target_dir)
@@ -30,25 +27,6 @@ class Command:
             info("Installation complete! ✨ 🌟 ✨")
         else:
             info("Hebi shell is already up to date! Nothing to do.")
-
-    def install_dependencies(self) -> None:
-        pacman_deps = [
-            "cmake", "make", "gcc", "qt6-base", "qt6-declarative",
-            "qt6-shadertools", "qt6-svg", "libqalculate", "pipewire", "aubio"
-        ]
-        yay_deps = ["libcava"]
-
-        log("Installing pacman dependencies...")
-        try:
-            subprocess.run(["sudo", "pacman", "-S", "--needed", "--noconfirm", *pacman_deps], check=True)
-        except subprocess.CalledProcessError as e:
-            fatal(f"Failed to install pacman dependencies: {e}")
-
-        log("Installing yay dependencies...")
-        try:
-            subprocess.run(["yay", "-S", "--needed", "--noconfirm", *yay_deps], check=True)
-        except subprocess.CalledProcessError as e:
-            fatal(f"Failed to install yay dependencies: {e}")
 
     def setup_repo(self, target_dir: Path) -> bool:
         if target_dir.exists():
