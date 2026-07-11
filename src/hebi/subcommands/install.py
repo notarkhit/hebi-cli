@@ -57,7 +57,7 @@ class Command:
 
     def install_dependencies(self) -> None:
         cli_pacman = [
-            "cliphist", "fuzzel", "wl-clipboard", "slurp", "grim", "swappy",
+            "cliphist", "wl-clipboard", "slurp", "grim", "swappy",
             "dart-sass", "dconf", "psmisc", "libnotify", "procps-ng"
         ]
         cli_yay = ["papirus-folders", "app2unit"]
