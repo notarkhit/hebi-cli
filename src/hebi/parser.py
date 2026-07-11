@@ -4,7 +4,6 @@ import sys
 from hebi.subcommands import (
     clipboard,
     emoji,
-    init,
     install,
     record,
     resizer,
@@ -143,13 +142,6 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     resizer_parser.add_argument("width", nargs="?", help="width to resize to")
     resizer_parser.add_argument("height", nargs="?", help="height to resize to")
     resizer_parser.add_argument("actions", nargs="?", help="comma-separated actions to apply (float,center,pip)")
-
-    # Create parser for init opts
-    init_parser = command_parser.add_parser(
-        "init",
-        help="initialize system dependencies for hebi-cli and the shell",
-    )
-    init_parser.set_defaults(cls=init.Command)
 
     # Create parser for install opts
     install_parser = command_parser.add_parser(
