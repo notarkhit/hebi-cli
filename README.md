@@ -20,78 +20,28 @@ The main control script for the Hebi dotfiles.
 
 ## Installation
 
-### Arch linux
+The recommended way to install `hebi-cli` is via [`pipx`](https://pipx.pypa.io/). This ensures the CLI and its dependencies are isolated in their own virtual environment while still being globally available in your PATH.
 
-The CLI is available from the AUR as `hebi-cli`. You can install it with an AUR helper
-like [`yay`](https://github.com/Jguer/yay) or manually downloading the PKGBUILD and running `makepkg -si`.
-
-A package following the latest commit also exists as `hebi-cli-git`. This is bleeding edge
-and likely to be unstable/have bugs. Regular users are recommended to use the stable package
-(`hebi-cli`).
-
-### Nix
-
-You can run the CLI directly via `nix run`:
+### 1. Install dependencies
+First, ensure you have all external [dependencies](#dependencies) installed, as well as `pipx`:
 
 ```sh
-nix run github:notarkhit/hebi-cli
+# Example for Arch Linux using yay:
+yay -S libnotify swappy grim dart-sass app2unit wl-clipboard slurp gpu-screen-recorder glib2 cliphist fuzzel python-pipx
 ```
 
-Or add it to your system configuration:
+### 2. Install the CLI using pipx
+Since `hebi-cli` is housed within the main `hebi` repository, you can install it directly from GitHub using the `#subdirectory` flag:
 
-```nix
-{
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-
-    hebi-cli = {
-      url = "github:notarkhit/hebi-cli";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
-}
+```sh
+pipx install "git+https://github.com/notarkhit/hebi.git#subdirectory=env/hebi-cli"
 ```
 
-The package is available as `hebi-cli.packages.<system>.default`, which can be added to your
-`environment.systemPackages`, `users.users.<username>.packages`, `home.packages` if using home-manager,
-or a devshell. The CLI can then be used via the `hebi` command.
+Once installed, the `hebi` command will be available in your terminal!
 
 > [!TIP]
-> The default package does not have the shell enabled by default, which is required for full functionality.
-> To enable the shell, use the `with-shell` package. This is the recommended installation method, as
-> the CLI exposes the shell via the `shell` subcommand, meaning there is no need for the shell package
-> to be exposed.
-
-For home-manager, you can also use the Hebi's home manager module (explained in
-[configuring](https://github.com/notarkhit/hebi?tab=readme-ov-file#home-manager-module)) that
-installs and configures the shell and the CLI.
-
-### Manual installation
-
-Install all [dependencies](#dependencies), then install
-[`python-build`](https://github.com/pypa/build),
-[`python-installer`](https://github.com/pypa/installer),
-[`python-hatch`](https://github.com/pypa/hatch) and
-[`python-hatch-vcs`](https://github.com/ofek/hatch-vcs).
-
-e.g. via an AUR helper (yay)
-
-```sh
-yay -S libnotify swappy grim dart-sass app2unit wl-clipboard slurp gpu-screen-recorder glib2 cliphist fuzzel python-build python-installer python-hatch python-hatch-vcs
-```
-
-Now, clone the repo, `cd` into it, build the wheel via `python -m build --wheel`
-and install it via `python -m installer dist/*.whl`. Then, to install the `fish`
-completions, copy the `completions/hebi.fish` file to
-`/usr/share/fish/vendor_completions.d/hebi.fish`.
-
-```sh
-git clone https://github.com/notarkhit/hebi-cli.git
-cd cli
-python -m build --wheel
-sudo python -m installer dist/*.whl
-sudo cp completions/hebi.fish /usr/share/fish/vendor_completions.d/hebi.fish
-```
+> To update the CLI in the future, simply run:
+> `pipx upgrade hebi`
 
 ### Additional steps
 
@@ -107,30 +57,6 @@ echo "$USER ALL=(ALL) NOPASSWD: $(which papirus-folders)" | sudo tee /etc/sudoer
 sudo chmod 440 /etc/sudoers.d/papirus-folders
 ```
 
-#### Chromium-based browser theming
-
-For live Chromium-based browser theming, the CLI must be allowed to create certain directories in `/etc`
-and write to them via `sudo` without a password prompt.
-
-You can allow this by creating a sudoers file:
-
-```fish
-# Fish shell
-for dir in /etc/chromium/policies/managed /etc/brave/policies/managed /etc/opt/chrome/policies/managed
-    echo "$USER ALL=(ALL) NOPASSWD: $(which mkdir) -p $dir" | sudo tee -a /etc/sudoers.d/hebi-chromium
-    echo "$USER ALL=(ALL) NOPASSWD: $(which tee) $dir/hebi.json" | sudo tee -a /etc/sudoers.d/hebi-chromium
-end
-sudo chmod 440 /etc/sudoers.d/hebi-chromium
-```
-
-```sh
-# Bash/other shells
-for dir in /etc/chromium/policies/managed /etc/brave/policies/managed /etc/opt/chrome/policies/managed; do
-    echo "$USER ALL=(ALL) NOPASSWD: $(which mkdir) -p $dir" | sudo tee -a /etc/sudoers.d/hebi-chromium
-    echo "$USER ALL=(ALL) NOPASSWD: $(which tee) $dir/hebi.json" | sudo tee -a /etc/sudoers.d/hebi-chromium
-done
-sudo chmod 440 /etc/sudoers.d/hebi-chromium
-```
 
 ## Usage
 
