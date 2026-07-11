@@ -173,10 +173,6 @@ def apply_spicetify(colours: dict[str, str], mode: str) -> None:
 
 
 @log_exception
-def apply_fuzzel(colours: dict[str, str]) -> None:
-    template = gen_replace(colours, templates_dir / "fuzzel.ini")
-    atomic_write(config_dir / "fuzzel/fuzzel.ini", template)
-
 
 @log_exception
 def apply_btop(colours: dict[str, str]) -> None:

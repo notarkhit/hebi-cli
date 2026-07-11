@@ -14,7 +14,7 @@ The main control script for the Hebi dotfiles.
 - [`gpu-screen-recorder`](https://git.dec05eba.com/gpu-screen-recorder/about) - screen recording
 - `glib2` - closing notifications
 - [`cliphist`](https://github.com/sentriz/cliphist) - clipboard history
-- [`fuzzel`](https://codeberg.org/dnkl/fuzzel) - clipboard history/emoji picker
+
 
 </details>
 
@@ -27,7 +27,7 @@ First, ensure you have all external [dependencies](#dependencies) installed, as 
 
 ```sh
 # Example for Arch Linux using yay:
-yay -S libnotify swappy grim dart-sass app2unit wl-clipboard slurp gpu-screen-recorder glib2 cliphist fuzzel python-pipx
+yay -S libnotify swappy grim dart-sass app2unit wl-clipboard slurp gpu-screen-recorder glib2 cliphist python-pipx
 ```
 
 ### 2. Install the CLI using pipx
