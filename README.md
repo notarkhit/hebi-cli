@@ -31,10 +31,10 @@ yay -S libnotify swappy grim dart-sass app2unit wl-clipboard slurp gpu-screen-re
 ```
 
 ### 2. Install the CLI using pipx
-Since `hebi-cli` is housed within the main `hebi` repository, you can install it directly from GitHub using the `#subdirectory` flag:
+You can install `hebi-cli` directly from GitHub using `pipx`:
 
 ```sh
-pipx install "git+https://github.com/notarkhit/hebi.git#subdirectory=env/hebi-cli"
+pipx install git+https://github.com/notarkhit/hebi-cli.git
 ```
 
 Once installed, the `hebi` command will be available in your terminal!
