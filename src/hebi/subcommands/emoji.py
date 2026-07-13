@@ -33,7 +33,7 @@ class Command:
         emojis.sort(key=lambda x: x.get("order", 999999))
 
         for emoji in emojis:
-            line = [emoji["unicode"]]
+            line = [emoji["emoji"]]
 
             if "emoticon" in emoji:
                 if isinstance(emoji["emoticon"], str):
