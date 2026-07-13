@@ -1,29 +1,3 @@
-🇦 regional indicator A
-🇧 regional indicator B
-🇨 regional indicator C
-🇩 regional indicator D
-🇪 regional indicator E
-🇫 regional indicator F
-🇬 regional indicator G
-🇭 regional indicator H
-🇮 regional indicator I
-🇯 regional indicator J
-🇰 regional indicator K
-🇱 regional indicator L
-🇲 regional indicator M
-🇳 regional indicator N
-🇴 regional indicator O
-🇵 regional indicator P
-🇶 regional indicator Q
-🇷 regional indicator R
-🇸 regional indicator S
-🇹 regional indicator T
-🇺 regional indicator U
-🇻 regional indicator V
-🇼 regional indicator W
-🇽 regional indicator X
-🇾 regional indicator Y
-🇿 regional indicator Z
 😀 grinning face cheerful cheery face grin grinning happy laugh nice smile smiling teeth
 😃 grinning face with big eyes awesome big eyes face grin grinning happy mouth open smile smiling teeth yay
 😄 :D grinning face with smiling eyes eye eyes face grin grinning happy laugh lol mouth open smile smiling
@@ -1947,3 +1921,29 @@
 🏴󠁧󠁢󠁥󠁮󠁧󠁿 flag: England flag gbeng
 🏴󠁧󠁢󠁳󠁣󠁴󠁿 flag: Scotland flag gbsct
 🏴󠁧󠁢󠁷󠁬󠁳󠁿 flag: Wales flag gbwls
+🇦 regional indicator A
+🇧 regional indicator B
+🇨 regional indicator C
+🇩 regional indicator D
+🇪 regional indicator E
+🇫 regional indicator F
+🇬 regional indicator G
+🇭 regional indicator H
+🇮 regional indicator I
+🇯 regional indicator J
+🇰 regional indicator K
+🇱 regional indicator L
+🇲 regional indicator M
+🇳 regional indicator N
+🇴 regional indicator O
+🇵 regional indicator P
+🇶 regional indicator Q
+🇷 regional indicator R
+🇸 regional indicator S
+🇹 regional indicator T
+🇺 regional indicator U
+🇻 regional indicator V
+🇼 regional indicator W
+🇽 regional indicator X
+🇾 regional indicator Y
+🇿 regional indicator Z
