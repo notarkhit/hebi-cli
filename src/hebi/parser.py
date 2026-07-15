@@ -12,6 +12,7 @@ from hebi.subcommands import (
     shell,
     toggle,
     wallpaper,
+    menu,
 )
 from hebi.utils.io import warn
 from hebi.utils.paths import wallpapers_dir
@@ -38,6 +39,11 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     shell_parser.add_argument("-k", "--kill", action="store_true", help="kill the shell")
     shell_parser.add_argument("-t", "--toggle", action="store_true", help="toggle the shell")
     shell_parser.add_argument("--log-rules", metavar="RULES", help="log rules to apply")
+
+    # Create parser for menu opts
+    menu_parser = command_parser.add_parser("menu", help="open the launcher menu")
+    menu_parser.set_defaults(cls=menu.Command)
+    menu_parser.add_argument("mode", nargs="?", default="drun", choices=["drun", "calc", "emoji", "nerdfont", "actions"], help="the menu mode to open")
 
     # Create parser for toggle opts
     toggle_parser = command_parser.add_parser("toggle", help="toggle a special workspace")
