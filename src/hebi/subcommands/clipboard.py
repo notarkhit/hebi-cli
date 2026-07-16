@@ -10,7 +10,7 @@ class Command:
 
     def run(self) -> None:
         if self.args.delete:
-            subprocess.run(["hebi", "shell", "launcher", "openMode", '"@"'])
+            subprocess.run(["hebi", "menu", "clipboard"])
             # Note: native UI handles deletion internally
         else:
-            subprocess.run(["hebi", "shell", "launcher", "openMode", '"@"'])
+            subprocess.run(["hebi", "menu", "clipboard"])

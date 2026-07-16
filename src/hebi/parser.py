@@ -43,7 +43,7 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     # Create parser for menu opts
     menu_parser = command_parser.add_parser("menu", help="open the launcher menu")
     menu_parser.set_defaults(cls=menu.Command)
-    menu_parser.add_argument("mode", nargs="?", default="drun", choices=["drun", "calc", "emoji", "nerdfont", "actions"], help="the menu mode to open")
+    menu_parser.add_argument("mode", nargs="?", default="drun", choices=["drun", "calc", "emoji", "nerdfont", "actions", "clipboard"], help="the menu mode to open")
 
     # Create parser for toggle opts
     toggle_parser = command_parser.add_parser("toggle", help="toggle a special workspace")
