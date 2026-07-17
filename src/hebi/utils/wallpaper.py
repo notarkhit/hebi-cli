@@ -2,6 +2,7 @@ import json
 import os
 import random
 import re
+import shutil
 import subprocess
 from argparse import Namespace
 from pathlib import Path
@@ -24,6 +25,12 @@ from hebi.utils.paths import (
 )
 from hebi.utils.scheme import Scheme, get_scheme
 from hebi.utils.theme import apply_colours
+
+
+def apply_awww(wall: Path) -> None:
+    """Set the wallpaper via awww if it is installed."""
+    if shutil.which("awww"):
+        subprocess.run(["awww", "img", str(wall)], stderr=subprocess.DEVNULL)
 
 
 def is_valid_image(path: Path) -> bool:
@@ -228,24 +235,8 @@ def set_wallpaper(wall: Path, no_smart: bool) -> None:
     scheme.update_colours()
     apply_colours(scheme.colours, scheme.mode)
 
-    # Run custom post-hook if configured
-    cfg = get_config().get("wallpaper", {})
-    if post_hook := cfg.get("postHook"):
-        subprocess.run(
-            post_hook,
-            shell=True,
-            env={
-                **os.environ,
-                "WALLPAPER_PATH": str(wall),
-                "SCHEME_NAME": scheme.name,
-                "SCHEME_FLAVOUR": scheme.flavour,
-                "SCHEME_MODE": scheme.mode,
-                "SCHEME_VARIANT": scheme.variant,
-                "SCHEME_COLOURS": json.dumps(scheme.colours),
-                "THUMBNAIL_PATH": str(thumb),
-            },
-            stderr=subprocess.DEVNULL,
-        )
+    # Apply wallpaper via awww (no external config file needed)
+    apply_awww(wall)
 
 
 def set_random(args: Namespace) -> None:
