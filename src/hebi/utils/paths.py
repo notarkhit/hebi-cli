@@ -33,7 +33,17 @@ scheme_path: Path = c_state_dir / "scheme.json"
 scheme_data_dir: Path = cli_data_dir / "schemes"
 scheme_cache_dir: Path = c_cache_dir / "schemes"
 
-wallpapers_dir: Path = Path(os.getenv("HEBI_WALLPAPERS_DIR", pictures_dir / "Wallpapers"))
+def _resolve_wallpapers_dir() -> Path:
+    if env := os.getenv("HEBI_WALLPAPERS_DIR"):
+        return Path(env)
+    for candidate in ["Wallpapers", "wallpapers"]:
+        p = pictures_dir / candidate
+        if p.is_dir():
+            return p
+    return pictures_dir
+
+
+wallpapers_dir: Path = _resolve_wallpapers_dir()
 wallpaper_path_path: Path = c_state_dir / "wallpaper/path.txt"
 wallpaper_link_path: Path = c_state_dir / "wallpaper/current"
 wallpaper_thumbnail_path: Path = c_state_dir / "wallpaper/thumbnail.jpg"

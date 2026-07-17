@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import re
 import subprocess
 from argparse import Namespace
 from pathlib import Path
@@ -35,11 +36,36 @@ def check_wall(wall: Path, filter_size: tuple[int, int], threshold: float) -> bo
         return width >= filter_size[0] * threshold and height >= filter_size[1] * threshold
 
 
-def get_wallpaper() -> str | None:
+def get_wallpaper_from_awww() -> str | None:
+    """Query awww daemon for the currently displayed wallpaper path."""
     try:
-        return wallpaper_path_path.read_text()
+        result = subprocess.run(
+            ["awww", "query"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        if result.returncode != 0:
+            return None
+        # Output format: ": <output>: <WxH>, scale: N, currently displaying: image: <path>"
+        match = re.search(r"currently displaying: image: (.+)", result.stdout)
+        if match:
+            return match.group(1).strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
+def get_wallpaper() -> str | None:
+    """Get current wallpaper path. Prefers hebi state file, falls back to awww query."""
+    try:
+        path = wallpaper_path_path.read_text().strip()
+        if path:
+            return path
     except IOError:
-        return None
+        pass
+    # Fallback: ask awww directly (handles wallpapers set outside of hebi)
+    return get_wallpaper_from_awww()
 
 
 def get_wallpapers(args: Namespace) -> list[Path]:
@@ -47,7 +73,7 @@ def get_wallpapers(args: Namespace) -> list[Path]:
     if not directory.is_dir():
         return []
 
-    walls = [f for f in directory.rglob("*") if is_valid_image(f)]
+    walls = [f for f in directory.rglob("*") if is_valid_image(f) and "live" not in f.relative_to(directory).parts]
 
     if args.no_filter:
         return walls
@@ -98,14 +124,14 @@ def get_smart_opts(wall: Path, cache: Path) -> dict:
     return opts
 
 
-def get_colours_for_wall(wall: Path | str, no_smart: bool) -> None:
+def get_colours_for_wall(wall: Path | str, no_smart: bool) -> dict:
     wall = Path(wall)
-    scheme = get_scheme()
+    # Extract first frame for animated formats BEFORE computing the cache key,
+    # so the hash is stable and consistent with set_wallpaper's cache.
+    wall = convert_to_static(wall)
     cache = wallpapers_cache_dir / compute_hash(wall)
 
-    if wall.suffix.lower() == ".gif":
-        wall = convert_gif(wall)
-
+    scheme = get_scheme()
     name = "dynamic"
 
     if not no_smart:
@@ -129,7 +155,22 @@ def get_colours_for_wall(wall: Path | str, no_smart: bool) -> None:
     }
 
 
-def convert_gif(wall: Path) -> Path:
+def convert_to_static(wall: Path) -> Path:
+    """Extract the first frame of animated images (GIF, animated WEBP) to a static PNG.
+    Returns the original path unchanged for static images."""
+    suffix = wall.suffix.lower()
+
+    is_animated = False
+    if suffix in (".gif", ".webp"):
+        try:
+            with Image.open(wall) as img:
+                is_animated = getattr(img, "n_frames", 1) > 1
+        except Exception:
+            pass
+
+    if not is_animated:
+        return wall
+
     cache = wallpapers_cache_dir / compute_hash(wall)
     output_path = cache / "first_frame.png"
 
@@ -140,11 +181,14 @@ def convert_gif(wall: Path) -> Path:
                 img.seek(0)
             except EOFError:
                 pass
-
-            img = img.convert("RGB")
-            img.save(output_path, "PNG")
+            img.convert("RGB").save(output_path, "PNG")
 
     return output_path
+
+
+def convert_gif(wall: Path) -> Path:
+    """Deprecated: use convert_to_static instead."""
+    return convert_to_static(wall)
 
 
 def set_wallpaper(wall: Path, no_smart: bool) -> None:
@@ -154,8 +198,8 @@ def set_wallpaper(wall: Path, no_smart: bool) -> None:
     if not is_valid_image(wall):
         raise ValueError(f'"{wall}" is not a valid image')
 
-    # Use gif's 1st frame for thumb only
-    wall_cache = convert_gif(wall) if wall.suffix.lower() == ".gif" else wall
+    # For animated formats, use first frame for color analysis & thumbnailing
+    wall_cache = convert_to_static(wall)
 
     # Update files
     wallpaper_path_path.parent.mkdir(parents=True, exist_ok=True)
