@@ -88,15 +88,26 @@ class Scheme:
         if mode == self._mode:
             return
 
-        if mode not in get_scheme_modes():
-            if self.notify:
-                notify(
-                    "-u",
-                    "critical",
-                    "Unable to set scheme mode",
-                    f'Scheme "{self.name} {self.flavour}" does not have a {mode} mode.',
-                )
-            raise ValueError(f'Invalid scheme mode: "{mode}". Valid modes: {get_scheme_modes()}')
+        if mode not in get_scheme_modes(self.name, self.flavour):
+            # Attempt to find another flavour that supports this mode
+            valid_flavours = []
+            for f in get_scheme_flavours(self.name):
+                if mode in get_scheme_modes(self.name, f):
+                    valid_flavours.append(f)
+            
+            if valid_flavours:
+                # User wants a default dark/light scheme for the family instead of a random one.
+                valid_flavours.sort()
+                self._flavour = valid_flavours[0]
+            else:
+                if self.notify:
+                    notify(
+                        "-u",
+                        "critical",
+                        "Unable to set scheme mode",
+                        f'Scheme "{self.name}" does not have any flavours with a {mode} mode.',
+                    )
+                raise ValueError(f'Invalid scheme mode: "{mode}". Scheme {self.name} has no flavours supporting it.')
 
         self._mode = mode
         self.update_colours()
