@@ -34,13 +34,20 @@ def apply_awww(wall: Path) -> None:
 
 
 def is_valid_image(path: Path) -> bool:
-    return path.is_file() and path.suffix in [".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff", ".gif"]
+    return path.is_file() and path.suffix.lower() in [
+        ".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff", ".gif",
+        ".jxl", ".pnm", ".tga", ".bmp", ".ff", ".farbfeld", ".svg"
+    ]
 
 
 def check_wall(wall: Path, filter_size: tuple[int, int], threshold: float) -> bool:
-    with Image.open(wall) as img:
-        width, height = img.size
-        return width >= filter_size[0] * threshold and height >= filter_size[1] * threshold
+    try:
+        with Image.open(wall) as img:
+            width, height = img.size
+            return width >= filter_size[0] * threshold and height >= filter_size[1] * threshold
+    except Exception:
+        # If Pillow cannot open it (e.g. SVG or JXL without plugin), assume it's large enough.
+        return True
 
 
 def get_wallpaper_from_awww() -> str | None:
@@ -76,11 +83,29 @@ def get_wallpaper() -> str | None:
 
 
 def get_wallpapers(args: Namespace) -> list[Path]:
-    directory = Path(args.random)
-    if not directory.is_dir():
+    base_dir = Path(args.random)
+    if not base_dir.is_dir():
         return []
 
-    walls = [f for f in directory.rglob("*") if is_valid_image(f) and "live" not in f.relative_to(directory).parts]
+    from hebi.utils.paths import wallpaper_type_path
+    wall_type = "static"
+    if wallpaper_type_path.exists():
+        wall_type = wallpaper_type_path.read_text().strip() or "static"
+
+    mode = "dark"
+    try:
+        scheme = get_scheme()
+        mode = scheme.mode
+    except Exception:
+        pass
+
+    search_dir = base_dir / wall_type / mode
+    if not search_dir.is_dir():
+        search_dir = base_dir / wall_type
+        if not search_dir.is_dir():
+            search_dir = base_dir
+
+    walls = [f for f in search_dir.rglob("*") if is_valid_image(f)]
 
     if args.no_filter:
         return walls

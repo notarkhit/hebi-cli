@@ -45,6 +45,7 @@ def _resolve_wallpapers_dir() -> Path:
 
 wallpapers_dir: Path = _resolve_wallpapers_dir()
 wallpaper_path_path: Path = c_state_dir / "wallpaper/path.txt"
+wallpaper_type_path: Path = c_state_dir / "wallpaper/type.txt"
 wallpaper_link_path: Path = c_state_dir / "wallpaper/current"
 wallpaper_thumbnail_path: Path = c_state_dir / "wallpaper/thumbnail.jpg"
 wallpapers_cache_dir: Path = c_cache_dir / "wallpapers"
