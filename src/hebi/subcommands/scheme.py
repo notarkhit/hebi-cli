@@ -113,19 +113,7 @@ class List:
                         s._mode = modes[0]
                     try:
                         s._update_colours()
-                        c = s.colours.copy()
-                        c["mode"] = s.mode
-                        
-                        # Determine if there's an opposite mode anywhere in the family
-                        opposite = "dark" if s.mode == "light" else "light"
-                        has_opposite = False
-                        for f in get_scheme_flavours(scheme):
-                            if opposite in get_scheme_modes(scheme, f):
-                                has_opposite = True
-                                break
-                        c["has_opposite_mode"] = has_opposite
-                        
-                        schemes[scheme][flavour] = c
+                        schemes[scheme][flavour] = s.colours
                     except ValueError:
                         pass
 
